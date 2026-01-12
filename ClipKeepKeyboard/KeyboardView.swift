@@ -7,226 +7,175 @@
 
 import SwiftUI
 
-/// Main SwiftUI view for the keyboard extension
+/// Main SwiftUI view for the keyboard extension - iOS 26 Native Style
 struct KeyboardView: View {
     @Bindable var dataProvider: KeyboardDataProvider
     var onItemSelected: (ClipboardItem) -> Void
     var onNextKeyboard: () -> Void
     
-    @State private var selectedTab: KeyboardTab = .recent
+    @State private var showingDropdown = false
+    @State private var selectedCategory: Category = .clipboard
     
-    enum KeyboardTab: String, CaseIterable {
-        case recent = "Recent"
+    enum Category: String, CaseIterable {
+        case clipboard = "Clipboard"
         case pinboards = "Pinboards"
         
         var icon: String {
             switch self {
-            case .recent: return "clock"
-            case .pinboards: return "pin"
+            case .clipboard: return "clock.arrow.circlepath"
+            case .pinboards: return "pin.fill"
             }
         }
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header with tabs and controls
-            headerView
+            // Main content area with frosted glass effect
+            mainContentArea
+            
+            // Bottom bar with space, delete, go
+            bottomBar
+        }
+    }
+    
+    // MARK: - Main Content Area
+    
+    private var mainContentArea: some View {
+        VStack(spacing: 12) {
+            // Header with search and category selector
+            headerBar
             
             // Content
-            contentView
-            
-            // Footer with keyboard controls
-            footerView
+            contentArea
         }
-        .background(Color(.secondarySystemBackground))
-        .onAppear {
-            dataProvider.refresh()
-        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+        )
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
     }
     
-    // MARK: - Header
-    
-    private var headerView: some View {
-        HStack(spacing: 16) {
-            // Tab picker
-            ForEach(KeyboardTab.allCases, id: \.self) { tab in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedTab = tab
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.caption)
-                        Text(tab.rawValue)
-                            .font(.caption.weight(.medium))
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(selectedTab == tab ? Color.accentColor : Color.clear)
-                    .foregroundStyle(selectedTab == tab ? .white : .primary)
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
+    private var headerBar: some View {
+        HStack {
+            // Search button
+            Button {
+                // Search action
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.title2)
+                    .foregroundStyle(.primary)
             }
+            .buttonStyle(.plain)
             
             Spacer()
             
-            // Refresh button
+            // Category selector
             Button {
-                dataProvider.refresh()
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showingDropdown.toggle()
+                }
             } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Image(systemName: selectedCategory.icon)
+                        .font(.body)
+                    Text(selectedCategory.rawValue)
+                        .font(.body.weight(.medium))
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                }
+                .foregroundStyle(.primary)
             }
             .buttonStyle(.plain)
+            
+            Spacer()
+            
+            // Placeholder for symmetry
+            Color.clear
+                .frame(width: 28, height: 28)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(.tertiarySystemBackground))
     }
-    
-    // MARK: - Content
     
     @ViewBuilder
-    private var contentView: some View {
-        switch selectedTab {
-        case .recent:
-            recentItemsView
-        case .pinboards:
-            pinboardsView
-        }
-    }
-    
-    private var recentItemsView: some View {
-        Group {
-            if dataProvider.recentItems.isEmpty {
-                emptyStateView("No recent items")
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 8) {
-                        ForEach(dataProvider.recentItems) { item in
-                            KeyboardItemView(item: item) {
-                                onItemSelected(item)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                }
-            }
-        }
-        .frame(height: 160)
-    }
-    
-    private var pinboardsView: some View {
-        Group {
-            if dataProvider.pinboards.isEmpty {
-                emptyStateView("No pinboards")
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 8) {
-                        ForEach(dataProvider.pinboards) { pinboard in
-                            pinboardRow(pinboard)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                }
-            }
-        }
-        .frame(height: 160)
-    }
-    
-    private func pinboardRow(_ pinboard: Pinboard) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Pinboard header
-            HStack(spacing: 6) {
-                Image(systemName: pinboard.iconName)
-                    .font(.caption)
-                    .foregroundStyle(pinboard.displayColor)
-                
-                Text(pinboard.name)
-                    .font(.caption.weight(.medium))
-                
+    private var contentArea: some View {
+        let items = selectedCategory == .clipboard 
+            ? dataProvider.recentItems 
+            : dataProvider.allItems
+        
+        if items.isEmpty {
+            // Empty state
+            VStack {
                 Spacer()
-                
-                Text("\(pinboard.itemCount)")
-                    .font(.caption2)
+                Text("History is empty")
+                    .font(.title2)
                     .foregroundStyle(.secondary)
+                Spacer()
             }
-            .padding(.horizontal, 8)
-            
-            // Items in pinboard
-            if !pinboard.itemIds.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 6) {
-                        ForEach(dataProvider.items(for: pinboard)) { item in
-                            KeyboardItemView(item: item, compact: true) {
-                                onItemSelected(item)
-                            }
+            .frame(height: 180)
+        } else {
+            // Items grid/list
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 10) {
+                    ForEach(items) { item in
+                        KeyboardItemView(item: item) {
+                            onItemSelected(item)
                         }
                     }
                 }
             }
+            .frame(height: 180)
         }
-        .padding(8)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
     
-    private func emptyStateView(_ message: String) -> some View {
-        VStack {
-            Spacer()
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
+    // MARK: - Bottom Bar
     
-    // MARK: - Footer
-    
-    private var footerView: some View {
-        HStack {
-            // Globe button to switch keyboards
-            Button(action: onNextKeyboard) {
-                Image(systemName: "globe")
-                    .font(.title3)
+    private var bottomBar: some View {
+        HStack(spacing: 8) {
+            // Space bar
+            Button {
+                // Insert space - handled by system
+            } label: {
+                Text("space")
+                    .font(.body)
                     .foregroundStyle(.primary)
-                    .frame(width: 44, height: 36)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Color(uiColor: .systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
             
-            Spacer()
-            
-            // App icon / branding
-            HStack(spacing: 4) {
-                Image(systemName: "clipboard")
-                    .font(.caption2)
-                Text("ClipKeep")
-                    .font(.caption2.weight(.medium))
-            }
-            .foregroundStyle(.secondary)
-            
-            Spacer()
-            
-            // Dismiss keyboard button
+            // Delete button
             Button {
-                // This would dismiss the keyboard if possible
-                // Not directly accessible from extension
+                // Delete action - handled by system
             } label: {
-                Image(systemName: "keyboard.chevron.compact.down")
+                Image(systemName: "delete.left.fill")
                     .font(.title3)
                     .foregroundStyle(.primary)
-                    .frame(width: 44, height: 36)
+                    .frame(width: 60, height: 44)
+                    .background(Color(uiColor: .systemGray3))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            
+            // Go button
+            Button {
+                // Go/Return action - handled by system
+            } label: {
+                Text("go")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 70, height: 44)
+                    .background(Color.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color(.tertiarySystemBackground))
+        .padding(.vertical, 6)
     }
 }
 
@@ -236,5 +185,6 @@ struct KeyboardView: View {
         onItemSelected: { _ in },
         onNextKeyboard: {}
     )
-    .frame(height: 280)
+    .frame(height: 300)
+    .background(Color.gray.opacity(0.3))
 }

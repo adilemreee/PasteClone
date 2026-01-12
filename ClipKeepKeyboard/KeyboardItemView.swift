@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Compact item view for the keyboard extension
+/// Compact view for displaying a clipboard item in the keyboard - iOS 26 style
 struct KeyboardItemView: View {
     let item: ClipboardItem
     var compact: Bool = false
@@ -15,33 +15,20 @@ struct KeyboardItemView: View {
     
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 4) {
-                // Type indicator
-                HStack(spacing: 4) {
-                    Image(systemName: item.type.icon)
-                        .font(.caption2)
-                        .foregroundStyle(item.type.color)
-                    
-                    if !compact {
-                        Text(item.type.displayName)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Spacer(minLength: 0)
-                }
-                
+            VStack(alignment: .leading, spacing: 6) {
                 // Content preview
                 contentPreview
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Timestamp
+                Text(item.formattedTimestamp)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-            .padding(8)
-            .frame(width: compact ? 100 : 140, height: compact ? 60 : 100)
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
+            .padding(12)
+            .frame(width: compact ? 100 : 140, height: compact ? 80 : 100, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(uiColor: .secondarySystemBackground).opacity(0.8))
             )
         }
         .buttonStyle(.plain)
@@ -52,21 +39,20 @@ struct KeyboardItemView: View {
         switch item.type {
         case .text:
             Text(item.previewText ?? item.rawData)
-                .font(.caption)
-                .lineLimit(compact ? 2 : 4)
+                .font(.subheadline)
+                .lineLimit(compact ? 2 : 3)
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.leading)
             
         case .link:
             VStack(alignment: .leading, spacing: 2) {
-                if let title = item.linkTitle, !compact {
-                    Text(title)
-                        .font(.caption.weight(.medium))
-                        .lineLimit(1)
-                }
-                Text(item.rawData)
-                    .font(.caption2)
+                Image(systemName: "link")
+                    .font(.caption)
                     .foregroundStyle(.blue)
-                    .lineLimit(compact ? 1 : 2)
+                Text(item.linkTitle ?? item.rawData)
+                    .font(.subheadline)
+                    .lineLimit(2)
+                    .foregroundStyle(.primary)
             }
             
         case .image:
@@ -76,34 +62,53 @@ struct KeyboardItemView: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity, maxHeight: compact ? 35 : 60)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
-                Image(systemName: "photo")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: compact ? 35 : 60)
+                VStack {
+                    Image(systemName: "photo")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                    Text("Image")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             
         case .file:
-            HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 4) {
                 Image(systemName: "doc.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.title3)
+                    .foregroundStyle(.orange)
                 Text(item.fileName ?? "File")
-                    .font(.caption)
-                    .lineLimit(1)
+                    .font(.subheadline)
+                    .lineLimit(2)
+                    .foregroundStyle(.primary)
             }
         }
     }
 }
 
 #Preview {
-    HStack(spacing: 8) {
-        KeyboardItemView(item: .sampleText, onTap: {})
-        KeyboardItemView(item: .sampleLink, onTap: {})
-        KeyboardItemView(item: .sampleText, compact: true, onTap: {})
+    HStack(spacing: 10) {
+        KeyboardItemView(
+            item: ClipboardItem(
+                type: .text,
+                rawData: "Sample text content here",
+                previewText: "Sample text content here"
+            ),
+            onTap: {}
+        )
+        
+        KeyboardItemView(
+            item: ClipboardItem(
+                type: .link,
+                rawData: "https://apple.com",
+                linkTitle: "Apple"
+            ),
+            onTap: {}
+        )
     }
     .padding()
-    .background(Color(.secondarySystemBackground))
+    .background(.ultraThinMaterial)
 }
