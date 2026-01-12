@@ -45,12 +45,34 @@ class KeyboardViewController: UIInputViewController {
             },
             onNextKeyboard: { [weak self] in
                 self?.advanceToNextInputMode()
+            },
+            onSpace: { [weak self] in
+                self?.textDocumentProxy.insertText(" ")
+                self?.playHaptic()
+            },
+            onDelete: { [weak self] in
+                self?.textDocumentProxy.deleteBackward()
+                self?.playHaptic()
+            },
+            onReturn: { [weak self] in
+                self?.textDocumentProxy.insertText("\n")
+                self?.playHaptic()
             }
         )
         
         // Create hosting controller
         let hostingController = UIHostingController(rootView: keyboardView)
         self.hostingController = hostingController
+        
+        // Make ALL backgrounds transparent for true glass effect
+        view.backgroundColor = .clear
+        hostingController.view.backgroundColor = .clear
+        inputView?.backgroundColor = .clear
+        
+        // Remove any default keyboard background
+        if let inputView = inputView {
+            inputView.allowsSelfSizing = true
+        }
         
         // Add as child view controller
         addChild(hostingController)
@@ -82,6 +104,10 @@ class KeyboardViewController: UIInputViewController {
         }
         
         // Haptic feedback
+        playHaptic()
+    }
+    
+    private func playHaptic() {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
     }

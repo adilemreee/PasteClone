@@ -12,6 +12,9 @@ struct KeyboardView: View {
     @Bindable var dataProvider: KeyboardDataProvider
     var onItemSelected: (ClipboardItem) -> Void
     var onNextKeyboard: () -> Void
+    var onSpace: () -> Void
+    var onDelete: () -> Void
+    var onReturn: () -> Void
     
     @State private var showingDropdown = false
     @State private var selectedCategory: Category = .clipboard
@@ -36,6 +39,7 @@ struct KeyboardView: View {
             // Bottom bar with space, delete, go
             bottomBar
         }
+        .background(Color.clear)
     }
     
     // MARK: - Main Content Area
@@ -51,10 +55,6 @@ struct KeyboardView: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        )
         .padding(.horizontal, 8)
         .padding(.top, 8)
     }
@@ -136,34 +136,32 @@ struct KeyboardView: View {
         HStack(spacing: 8) {
             // Space bar
             Button {
-                // Insert space - handled by system
+                onSpace()
             } label: {
                 Text("space")
                     .font(.body)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
-                    .background(Color(uiColor: .systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
             
             // Delete button
             Button {
-                // Delete action - handled by system
+                onDelete()
             } label: {
                 Image(systemName: "delete.left.fill")
                     .font(.title3)
                     .foregroundStyle(.primary)
                     .frame(width: 60, height: 44)
-                    .background(Color(uiColor: .systemGray3))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
             
             // Go button
             Button {
-                // Go/Return action - handled by system
+                onReturn()
             } label: {
                 Text("go")
                     .font(.body.weight(.medium))
@@ -183,7 +181,10 @@ struct KeyboardView: View {
     KeyboardView(
         dataProvider: KeyboardDataProvider(),
         onItemSelected: { _ in },
-        onNextKeyboard: {}
+        onNextKeyboard: {},
+        onSpace: {},
+        onDelete: {},
+        onReturn: {}
     )
     .frame(height: 300)
     .background(Color.gray.opacity(0.3))
